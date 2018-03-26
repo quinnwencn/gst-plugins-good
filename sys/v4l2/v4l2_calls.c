@@ -604,6 +604,10 @@ gst_v4l2_open (GstV4l2Object * v4l2object, GstV4l2Error * error)
     v4l2object->never_interlaced = TRUE;
   }
 
+  if (!strcmp ((char *) v4l2object->vcap.driver, "vpu B0")) {
+    v4l2object->is_amphion = TRUE;
+  }
+
   return TRUE;
 
   /* ERRORS */
@@ -691,6 +695,7 @@ gst_v4l2_dup (GstV4l2Object * v4l2object, GstV4l2Object * other)
 
   v4l2object->never_interlaced = other->never_interlaced;
   v4l2object->no_initial_format = other->no_initial_format;
+  v4l2object->is_amphion = other->is_amphion;
 
   return TRUE;
 
@@ -1147,7 +1152,7 @@ input_failed:
 }
 
 gboolean
-gst_v4l2_query_input (GstV4l2Object * obj, struct v4l2_input *input)
+gst_v4l2_query_input (GstV4l2Object * obj, struct v4l2_input * input)
 {
   gint ret;
 
@@ -1278,7 +1283,7 @@ failed:
 }
 
 gboolean
-gst_v4l2_dequeue_event (GstV4l2Object * v4l2object, struct v4l2_event *event)
+gst_v4l2_dequeue_event (GstV4l2Object * v4l2object, struct v4l2_event * event)
 {
   gint ret;
 
@@ -1301,7 +1306,7 @@ gst_v4l2_dequeue_event (GstV4l2Object * v4l2object, struct v4l2_event *event)
 
 gboolean
 gst_v4l2_set_dv_timings (GstV4l2Object * v4l2object,
-    struct v4l2_dv_timings *timings)
+    struct v4l2_dv_timings * timings)
 {
   gint ret;
 
@@ -1321,7 +1326,7 @@ gst_v4l2_set_dv_timings (GstV4l2Object * v4l2object,
 
 gboolean
 gst_v4l2_query_dv_timings (GstV4l2Object * v4l2object,
-    struct v4l2_dv_timings *timings)
+    struct v4l2_dv_timings * timings)
 {
   gint ret;
 
