@@ -151,6 +151,7 @@ static const GstV4L2FormatDesc gst_v4l2_formats[] = {
 
   /* two planes -- one Y, one Cr + Cb interleaved  */
   {V4L2_PIX_FMT_NV12, TRUE, GST_V4L2_RAW},
+  {V4L2_PIX_FMT_NV12_10BIT, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV12M, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV12MT, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV12MT_16X16, TRUE, GST_V4L2_RAW},
@@ -199,6 +200,12 @@ static const GstV4L2FormatDesc gst_v4l2_formats[] = {
   {V4L2_PIX_FMT_H264_NO_SC, FALSE, GST_V4L2_CODEC},
   {V4L2_PIX_FMT_H264_MVC, FALSE, GST_V4L2_CODEC},
   {V4L2_PIX_FMT_HEVC, FALSE, GST_V4L2_CODEC},
+  {V4L2_PIX_FMT_RV, FALSE, GST_V4L2_CODEC},
+  {V4L2_PIX_FMT_VP6, FALSE, GST_V4L2_CODEC},
+  {V4L2_PIX_FMT_AVS, FALSE, GST_V4L2_CODEC},
+  {V4L2_PIX_FMT_SPK, FALSE, GST_V4L2_CODEC},
+  {V4L2_PIX_FMT_DIV3, FALSE, GST_V4L2_CODEC},
+  {V4L2_PIX_FMT_DIVX, FALSE, GST_V4L2_CODEC},
   {V4L2_PIX_FMT_H263, FALSE, GST_V4L2_CODEC},
   {V4L2_PIX_FMT_MPEG1, FALSE, GST_V4L2_CODEC},
   {V4L2_PIX_FMT_MPEG2, FALSE, GST_V4L2_CODEC},
@@ -1132,6 +1139,7 @@ gst_v4l2_object_format_get_rank (const struct v4l2_fmtdesc *fmt)
       break;
     case V4L2_PIX_FMT_NV12:    /* Y/CbCr 4:2:0, 12 bits per pixel */
     case V4L2_PIX_FMT_NV12M:   /* Same as NV12      */
+    case V4L2_PIX_FMT_NV12_10BIT:      /* 12  Y/CbCr 4:2:0  */
       rank = YUV_BASE_RANK + 8;
       break;
     case V4L2_PIX_FMT_YUYV:    /* YUY2, 16 bits per pixel */
@@ -1407,6 +1415,9 @@ gst_v4l2_object_v4l2fourcc_to_video_format (guint32 fourcc)
     case V4L2_PIX_FMT_NV12M:
       format = GST_VIDEO_FORMAT_NV12;
       break;
+    case V4L2_PIX_FMT_NV12_10BIT:
+      format = GST_VIDEO_FORMAT_NV12_10LE40;
+      break;
     case V4L2_PIX_FMT_NV12MT:
       format = GST_VIDEO_FORMAT_NV12_64Z32;
       break;
@@ -1545,10 +1556,12 @@ gst_v4l2_object_v4l2fourcc_to_bare_struct (guint32 fourcc)
           "mpegversion", G_TYPE_INT, 2, NULL);
       break;
     case V4L2_PIX_FMT_MPEG4:
-    case V4L2_PIX_FMT_XVID:
       structure = gst_structure_new ("video/mpeg",
           "mpegversion", G_TYPE_INT, 4, "systemstream",
           G_TYPE_BOOLEAN, FALSE, NULL);
+      break;
+    case V4L2_PIX_FMT_XVID:
+      structure = gst_structure_new_empty ("video/x-xvid");
       break;
     case V4L2_PIX_FMT_FWHT:
       structure = gst_structure_new_empty ("video/x-fwht");
@@ -1572,10 +1585,31 @@ gst_v4l2_object_v4l2fourcc_to_bare_struct (guint32 fourcc)
           "stream-format", G_TYPE_STRING, "byte-stream", "alignment",
           G_TYPE_STRING, "au", NULL);
       break;
+    case V4L2_PIX_FMT_RV:
+      structure = gst_structure_new_empty ("video/x-pn-realvideo");
+      break;
+    case V4L2_PIX_FMT_VP6:
+      structure = gst_structure_new_empty ("video/x-vp6-flash");
+      break;
+    case V4L2_PIX_FMT_AVS:
+      structure = gst_structure_new_empty ("video/x-cavs");
+      break;
+    case V4L2_PIX_FMT_SPK:
+      structure = gst_structure_new ("video/x-flash-video",
+          "flvversion", G_TYPE_INT, 1, NULL);
+      break;
+    case V4L2_PIX_FMT_DIV3:
+      structure = gst_structure_new ("video/x-divx",
+          "divxversion", G_TYPE_INT, 3, NULL);
+      break;
+    case V4L2_PIX_FMT_DIVX:
+      structure = gst_structure_new ("video/x-divx",
+          "divxversion", GST_TYPE_INT_RANGE, 4, 6, NULL);
+      break;
     case V4L2_PIX_FMT_VC1_ANNEX_G:
     case V4L2_PIX_FMT_VC1_ANNEX_L:
       structure = gst_structure_new ("video/x-wmv",
-          "wmvversion", G_TYPE_INT, 3, "format", G_TYPE_STRING, "WVC1", NULL);
+          "wmvversion", G_TYPE_INT, 3, NULL);
       break;
     case V4L2_PIX_FMT_VP8:
       structure = gst_structure_new_empty ("video/x-vp8");
@@ -1604,6 +1638,7 @@ gst_v4l2_object_v4l2fourcc_to_bare_struct (guint32 fourcc)
     case V4L2_PIX_FMT_XBGR32:
     case V4L2_PIX_FMT_ABGR32:
     case V4L2_PIX_FMT_NV12:    /* 12  Y/CbCr 4:2:0  */
+    case V4L2_PIX_FMT_NV12_10BIT:      /* 12  Y/CbCr 4:2:0  */
     case V4L2_PIX_FMT_NV12M:
     case V4L2_PIX_FMT_NV12MT:
     case V4L2_PIX_FMT_MM21:
@@ -1785,7 +1820,7 @@ gst_v4l2_object_is_raw (GstV4l2Object * v4l2object)
 
   for (i = 0; i < GST_V4L2_FORMAT_COUNT; i++) {
     if (gst_v4l2_formats[i].format == GST_V4L2_PIXELFORMAT (v4l2object)) {
-      return !!(gst_v4l2_formats[i].flags & GST_V4L2_RAW);
+      return ! !(gst_v4l2_formats[i].flags & GST_V4L2_RAW);
     }
   }
   return FALSE;
@@ -1958,6 +1993,9 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
         fourcc = V4L2_PIX_FMT_NV12;
         fourcc_nc = V4L2_PIX_FMT_NV12M;
         break;
+      case GST_VIDEO_FORMAT_NV12_10LE40:
+        fourcc = V4L2_PIX_FMT_NV12_10BIT;
+        break;
       case GST_VIDEO_FORMAT_NV12_64Z32:
         fourcc_nc = V4L2_PIX_FMT_NV12MT;
         break;
@@ -2070,6 +2108,8 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
             break;
         }
       }
+    } else if (g_str_equal (mimetype, "video/x-xvid")) {
+      fourcc = V4L2_PIX_FMT_XVID;
     } else if (g_str_equal (mimetype, "video/x-fwht")) {
       fourcc = V4L2_PIX_FMT_FWHT;
     } else if (g_str_equal (mimetype, "video/x-h263")) {
@@ -2083,6 +2123,31 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
         fourcc = V4L2_PIX_FMT_H264;
     } else if (g_str_equal (mimetype, "video/x-h265")) {
       fourcc = V4L2_PIX_FMT_HEVC;
+    } else if (g_str_equal (mimetype, "video/x-pn-realvideo")) {
+      fourcc = V4L2_PIX_FMT_RV;
+    } else if (g_str_equal (mimetype, "video/x-vp6-flash")) {
+      fourcc = V4L2_PIX_FMT_VP6;
+    } else if (g_str_equal (mimetype, "video/x-cavs")) {
+      fourcc = V4L2_PIX_FMT_AVS;
+    } else if (g_str_equal (mimetype, "video/x-flash-video")) {
+      fourcc = V4L2_PIX_FMT_SPK;
+    } else if (g_str_equal (mimetype, "video/x-divx")) {
+      gint divxversion;
+      if (gst_structure_get_int (structure, "divxversion", &divxversion)) {
+        if (divxversion == 3) {
+          fourcc = V4L2_PIX_FMT_DIV3;
+        } else {
+          fourcc = V4L2_PIX_FMT_DIVX;
+        }
+      }
+    } else if (g_str_equal (mimetype, "video/x-wmv")) {
+      const gchar *format = gst_structure_get_string (structure, "format");
+      if (format) {
+        if (!g_ascii_strcasecmp (format, "WMV3"))
+          fourcc = V4L2_PIX_FMT_VC1_ANNEX_G;
+        else if (!g_ascii_strcasecmp (format, "WVC1"))
+          fourcc = V4L2_PIX_FMT_VC1_ANNEX_L;
+      }
     } else if (g_str_equal (mimetype, "video/x-vp8")) {
       fourcc = V4L2_PIX_FMT_VP8;
     } else if (g_str_equal (mimetype, "video/x-vp9")) {
@@ -4691,7 +4756,7 @@ unsupported_format:
  * Returns: %TRUE on success, %FALSE on failure.
  */
 gboolean
-gst_v4l2_object_set_crop (GstV4l2Object * obj, struct v4l2_rect *crop_rect)
+gst_v4l2_object_set_crop (GstV4l2Object * obj, struct v4l2_rect * crop_rect)
 {
   struct v4l2_selection sel = { 0 };
   struct v4l2_crop crop = { 0 };
@@ -4814,13 +4879,14 @@ gst_v4l2_object_get_crop_rect (GstV4l2Object * obj, guint target,
 }
 
 gboolean
-gst_v4l2_object_get_crop_bounds (GstV4l2Object * obj, struct v4l2_rect *result)
+gst_v4l2_object_get_crop_bounds (GstV4l2Object * obj, struct v4l2_rect * result)
 {
   return gst_v4l2_object_get_crop_rect (obj, V4L2_SEL_TGT_CROP_BOUNDS, result);
 }
 
 gboolean
-gst_v4l2_object_get_crop_default (GstV4l2Object * obj, struct v4l2_rect *result)
+gst_v4l2_object_get_crop_default (GstV4l2Object * obj,
+    struct v4l2_rect * result)
 {
   return gst_v4l2_object_get_crop_rect (obj, V4L2_SEL_TGT_CROP_DEFAULT, result);
 }
