@@ -697,6 +697,8 @@ gst_v4l2_buffer_pool_streamoff (GstV4l2BufferPool * pool)
   if (!pool->streaming)
     return;
 
+  GST_OBJECT_LOCK (pool);
+
   switch (obj->mode) {
     case GST_V4L2_IO_MMAP:
     case GST_V4L2_IO_USERPTR:
@@ -733,6 +735,8 @@ gst_v4l2_buffer_pool_streamoff (GstV4l2BufferPool * pool)
       g_atomic_int_add (&pool->num_queued, -1);
     }
   }
+
+  GST_OBJECT_UNLOCK (pool);
 }
 
 static gboolean
@@ -1006,11 +1010,12 @@ gst_v4l2_buffer_pool_orphan (GstBufferPool ** bpool)
   GST_DEBUG_OBJECT (pool, "orphaning pool");
   gst_buffer_pool_set_active (*bpool, FALSE);
 
+  gst_v4l2_buffer_pool_streamoff (pool);
+
   /* We lock to prevent racing with a return buffer in QBuf, and has a
    * workaround of not being able to use the pool hidden activation lock. */
   GST_OBJECT_LOCK (pool);
 
-  gst_v4l2_buffer_pool_streamoff (pool);
   ret = gst_v4l2_allocator_orphan (pool->vallocator);
   if (ret)
     pool->orphaned = TRUE;
@@ -1225,8 +1230,7 @@ gst_v4l2_buffer_pool_dqevent (GstV4l2BufferPool * pool)
   if (obj->ioctl (pool->video_fd, VIDIOC_DQEVENT, &evt) < 0)
     goto dqevent_failed;
 
-  switch (evt.type)
-  {
+  switch (evt.type) {
     case V4L2_EVENT_SOURCE_CHANGE:
       return GST_V4L2_FLOW_SOURCE_CHANGE;
     case V4L2_EVENT_EOS:
@@ -1258,6 +1262,8 @@ gst_v4l2_buffer_pool_dqbuf (GstV4l2BufferPool * pool, GstBuffer ** buffer)
   gsize size;
   gint i;
 
+  GST_OBJECT_LOCK (pool);
+
   res = gst_v4l2_allocator_dqbuf (pool->vallocator, &group);
   if (res == GST_FLOW_EOS)
     goto eos;
@@ -1274,10 +1280,10 @@ gst_v4l2_buffer_pool_dqbuf (GstV4l2BufferPool * pool, GstBuffer ** buffer)
   /* mark the buffer outstanding */
   pool->buffers[group->buffer.index] = NULL;
   if (g_atomic_int_dec_and_test (&pool->num_queued)) {
-    GST_OBJECT_LOCK (pool);
     pool->empty = TRUE;
-    GST_OBJECT_UNLOCK (pool);
   }
+
+  GST_OBJECT_UNLOCK (pool);
 
   timestamp = GST_TIMEVAL_TO_TIME (group->buffer.timestamp);
 
@@ -1395,14 +1401,17 @@ done:
   /* ERRORS */
 eos:
   {
+    GST_OBJECT_UNLOCK (pool);
     return GST_FLOW_EOS;
   }
 dqbuf_failed:
   {
+    GST_OBJECT_UNLOCK (pool);
     return GST_FLOW_ERROR;
   }
 no_buffer:
   {
+    GST_OBJECT_UNLOCK (pool);
     GST_ERROR_OBJECT (pool, "No free buffer found in the pool at index %d.",
         group->buffer.index);
     return GST_FLOW_ERROR;
@@ -1929,7 +1938,9 @@ gst_v4l2_buffer_pool_process (GstV4l2BufferPool * pool, GstBuffer ** buf)
           }
 
           /* buffer not from our pool, grab a frame and copy it into the target */
-          if ((ret = gst_v4l2_buffer_pool_dequeue (pool, &tmp, TRUE)) != GST_FLOW_OK)
+          if ((ret =
+                  gst_v4l2_buffer_pool_dequeue (pool, &tmp,
+                      TRUE)) != GST_FLOW_OK)
             goto done;
 
           /* An empty buffer on capture indicates the end of stream */
