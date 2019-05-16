@@ -550,12 +550,11 @@ gst_v4l2_video_dec_setup_capture (GstVideoDecoder * decoder)
     gst_caps_replace (&self->probed_srccaps, NULL);
     self->probed_srccaps = gst_v4l2_object_probe_caps (self->v4l2capture,
         gst_v4l2_object_get_raw_caps ());
-    /* Create caps from the acquired format, remove the format field */
+    /* Create caps from the acquired format */
     acquired_caps = gst_video_info_to_caps (&info);
     GST_DEBUG_OBJECT (self, "Acquired caps: %" GST_PTR_FORMAT, acquired_caps);
     st = gst_caps_get_structure (acquired_caps, 0);
-    gst_structure_remove_fields (st, "format", "colorimetry", "chroma-site",
-        NULL);
+    gst_structure_remove_fields (st, "colorimetry", "chroma-site", NULL);
 
     /* Probe currently available pixel formats */
     available_caps = gst_caps_copy (self->probed_srccaps);
