@@ -1231,6 +1231,8 @@ gst_v4l2_buffer_pool_dqevent (GstV4l2BufferPool * pool)
       return GST_V4L2_FLOW_SOURCE_CHANGE;
     case V4L2_EVENT_EOS:
       return GST_V4L2_FLOW_LAST_BUFFER;
+    case V4L2_EVENT_DECODE_ERROR:
+      return GST_FLOW_ERROR;
     default:
       break;
   }
