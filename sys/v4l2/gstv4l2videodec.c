@@ -1157,6 +1157,8 @@ G_STMT_START { \
     }
   } else if (gst_structure_has_name (s, "video/x-h263")) {
     SET_META ("H263");
+  } else if (gst_structure_has_name (s, "video/x-xvid")) {
+    SET_META ("XVID");
   } else if (gst_structure_has_name (s, "video/x-fwht")) {
     SET_META ("FWHT");
   } else if (gst_structure_has_name (s, "video/x-h264")) {
