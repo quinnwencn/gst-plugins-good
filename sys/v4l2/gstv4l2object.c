@@ -1088,7 +1088,7 @@ gst_v4l2_object_format_get_rank (const struct v4l2_fmtdesc *fmt)
       break;
     case V4L2_PIX_FMT_NV12:    /* Y/CbCr 4:2:0, 12 bits per pixel */
     case V4L2_PIX_FMT_NV12M:   /* Same as NV12      */
-    case V4L2_PIX_FMT_NV12_10BIT:    /* 12  Y/CbCr 4:2:0  */
+    case V4L2_PIX_FMT_NV12_10BIT:      /* 12  Y/CbCr 4:2:0  */
       rank = YUV_BASE_RANK + 8;
       break;
     case V4L2_PIX_FMT_YUYV:    /* YUY2, 16 bits per pixel */
@@ -1545,7 +1545,7 @@ gst_v4l2_object_v4l2fourcc_to_bare_struct (guint32 fourcc)
     case V4L2_PIX_FMT_XBGR32:
     case V4L2_PIX_FMT_ABGR32:
     case V4L2_PIX_FMT_NV12:    /* 12  Y/CbCr 4:2:0  */
-    case V4L2_PIX_FMT_NV12_10BIT:    /* 12  Y/CbCr 4:2:0  */
+    case V4L2_PIX_FMT_NV12_10BIT:      /* 12  Y/CbCr 4:2:0  */
     case V4L2_PIX_FMT_NV12M:
     case V4L2_PIX_FMT_NV12MT:
     case V4L2_PIX_FMT_NV21:    /* 12  Y/CrCb 4:2:0  */
@@ -4224,6 +4224,16 @@ gst_v4l2_object_try_format (GstV4l2Object * v4l2object, GstCaps * caps,
   GST_DEBUG_OBJECT (v4l2object->dbg_obj, "Trying format %" GST_PTR_FORMAT,
       caps);
   return gst_v4l2_object_set_format_full (v4l2object, caps, TRUE, error);
+}
+
+gboolean
+gst_v4l2_object_streamoff (GstV4l2Object * v4l2object)
+{
+  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_STREAMOFF,
+          &v4l2object->type) < 0)
+    return FALSE;
+
+  return TRUE;
 }
 
 /**
