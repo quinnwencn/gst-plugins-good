@@ -335,8 +335,13 @@ gst_v4l2_video_dec_flush (GstVideoDecoder * decoder)
   /* gst_v4l2_buffer_pool_flush() calls streamon the capture pool and must be
    * called after gst_v4l2_object_unlock_stop() stopped flushing the buffer
    * pool. */
-  if (!gst_v4l2_buffer_pool_flush (self->v4l2capture))
-    return FALSE;
+  if (GST_V4L2_IS_ACTIVE (self->v4l2capture)) {
+    if (!gst_v4l2_buffer_pool_flush (self->v4l2capture))
+      return FALSE;
+  } else {
+    if (!gst_v4l2_object_streamoff (self->v4l2capture))
+      return FALSE;
+  }
 
   return TRUE;
 }
@@ -639,9 +644,10 @@ gst_v4l2_video_dec_setup_capture (GstVideoDecoder * decoder)
     if (!gst_video_decoder_negotiate (decoder)) {
       if (cpool)
         gst_object_unref (cpool);
-      if (GST_PAD_IS_FLUSHING (decoder->srcpad))
+      if (GST_PAD_IS_FLUSHING (decoder->srcpad)) {
+        gst_v4l2_object_stop (self->v4l2capture);
         goto flushing;
-      else
+      } else
         goto not_negotiated;
     }
 
