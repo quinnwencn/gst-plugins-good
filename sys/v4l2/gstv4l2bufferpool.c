@@ -1006,17 +1006,13 @@ gst_v4l2_buffer_pool_orphan (GstBufferPool ** bpool)
    * as orphaned
    */
   ret = gst_v4l2_buffer_pool_stop (*bpool);
-  GST_OBJECT_LOCK (pool);
   if (!ret)
     ret = gst_v4l2_allocator_orphan (pool->vallocator);
 
-  if (!ret) {
-    GST_OBJECT_UNLOCK (pool);
+  if (!ret)
     goto orphan_failed;
-  }
 
   pool->orphaned = TRUE;
-  GST_OBJECT_UNLOCK (pool);
   gst_object_unref (*bpool);
   *bpool = NULL;
 
@@ -1181,8 +1177,6 @@ gst_v4l2_buffer_pool_qbuf (GstV4l2BufferPool * pool, GstBuffer * buf,
   }
 
   GST_OBJECT_LOCK (pool);
-  if (pool->orphaned)
-    goto pool_orphaned;
   g_atomic_int_inc (&pool->num_queued);
   pool->buffers[index] = buf;
 
@@ -1195,13 +1189,6 @@ gst_v4l2_buffer_pool_qbuf (GstV4l2BufferPool * pool, GstBuffer * buf,
 
   return GST_FLOW_OK;
 
-pool_orphaned:
-  {
-    GST_WARNING_OBJECT (pool, "pool is orphaned, no need to queue buffer %p",
-        buf);
-    GST_OBJECT_UNLOCK (pool);
-    return GST_FLOW_OK;
-  }
 already_queued:
   {
     GST_ERROR_OBJECT (pool, "the buffer %i was already queued", index);
@@ -1535,14 +1522,11 @@ gst_v4l2_buffer_pool_release_buffer (GstBufferPool * bpool, GstBuffer * buffer)
 
   /* If the buffer's pool has been orphaned, dispose of it so that
    * the pool resources can be freed */
-  GST_OBJECT_LOCK (pool);
   if (pool->orphaned) {
-    GST_OBJECT_UNLOCK (pool);
     GST_BUFFER_FLAG_SET (buffer, GST_BUFFER_FLAG_TAG_MEMORY);
     pclass->release_buffer (bpool, buffer);
     return;
   }
-  GST_OBJECT_UNLOCK (pool);
 
   switch (obj->type) {
     case V4L2_BUF_TYPE_VIDEO_CAPTURE:
