@@ -613,9 +613,6 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
     if (ret == GST_V4L2_FLOW_SOURCE_CHANGE) {
       GST_DEBUG_OBJECT (decoder, "Received resolution change");
       gst_v4l2_object_stop (self->v4l2capture);
-      /* FIXME: workaround for V4L2 can't allocate buffer before release prevously
-       * buffer */
-      g_usleep (300 * (G_USEC_PER_SEC / 1000));
       return;
     }
 
