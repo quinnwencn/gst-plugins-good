@@ -261,6 +261,7 @@ gst_v4l2_video_dec_set_format (GstVideoDecoder * decoder,
   GstV4l2Error error = GST_V4L2_ERROR_INIT;
   gboolean ret = TRUE;
   GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
+  GstCaps *caps;
 
   GST_DEBUG_OBJECT (self, "Setting format: %" GST_PTR_FORMAT, state->caps);
 
@@ -278,7 +279,9 @@ gst_v4l2_video_dec_set_format (GstVideoDecoder * decoder,
     return TRUE;
   }
 
-  ret = gst_v4l2_object_set_format (self->v4l2output, state->caps, &error);
+  caps = gst_caps_copy (state->caps);
+  ret = gst_v4l2_object_set_format (self->v4l2output, caps, &error);
+  gst_caps_unref (caps);
 
   gst_caps_replace (&self->probed_srccaps, NULL);
   self->probed_srccaps = gst_v4l2_object_probe_caps (self->v4l2capture,
