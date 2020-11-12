@@ -1700,10 +1700,11 @@ static GstCaps *
 gst_v4l2_object_get_caps_helper (GstV4L2FormatFlags flags)
 {
   GstStructure *structure;
-  GstCaps *caps;
+  GstCaps *caps, *caps_interlaced;
   guint i;
 
   caps = gst_caps_new_empty ();
+  caps_interlaced = gst_caps_new_empty ();
   for (i = 0; i < GST_V4L2_FORMAT_COUNT; i++) {
 
     if ((gst_v4l2_formats[i].flags & flags) == 0)
@@ -1736,14 +1737,19 @@ gst_v4l2_object_get_caps_helper (GstV4L2FormatFlags flags)
 
       gst_caps_append_structure (caps, structure);
 
-      if (alt_s)
+      if (alt_s) {
         gst_caps_append_structure (caps, alt_s);
+        add_alternate_variant (NULL, caps_interlaced, alt_s);
+      }
 
-      add_alternate_variant (NULL, caps, structure);
+      add_alternate_variant (NULL, caps_interlaced, structure);
     }
   }
 
-  return gst_caps_simplify (caps);
+  caps = gst_caps_simplify (caps);
+  caps_interlaced = gst_caps_simplify (caps_interlaced);
+
+  return gst_caps_merge (caps, caps_interlaced);
 }
 
 GstCaps *
