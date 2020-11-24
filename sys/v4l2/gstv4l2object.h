@@ -230,6 +230,7 @@ struct _GstV4l2Object {
   gboolean can_wait_event;
   gboolean need_wait_event;
   gboolean is_amphion;
+  gboolean is_hantro;
 };
 
 struct _GstV4l2ObjectClassHelper {
