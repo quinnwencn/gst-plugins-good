@@ -563,6 +563,7 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
       }
     }
     self->v4l2capture->need_wait_event = FALSE;
+    self->v4l2capture->is_g2 = self->v4l2output->is_g2;
 
     /* For decoders G_FMT returns coded size, G_SELECTION returns visible size
      * in the compose rectangle. gst_v4l2_object_acquire_format() checks both
@@ -675,8 +676,9 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
     frame->pts = GST_BUFFER_TIMESTAMP (buffer);
     GST_DEBUG_OBJECT (decoder, "output frame time stamp: %"
         GST_TIME_FORMAT, GST_TIME_ARGS (frame->pts));
-    if (IS_AMPHION () && self->v4l2capture->is_amphion) {
-      guint64 drm_modifier = DRM_FORMAT_MOD_AMPHION_TILED;
+    if ((IS_AMPHION() && self->v4l2capture->is_amphion)
+        || (IS_IMX8MQ() && self->v4l2capture->is_hantro)) {
+      guint64 drm_modifier = self->v4l2capture->drm_modifier;
       gst_buffer_add_dmabuf_meta (frame->output_buffer, drm_modifier);
       GST_DEBUG_OBJECT (decoder, "Add drm modifier: %lld\n", drm_modifier);
     }
