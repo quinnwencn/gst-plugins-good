@@ -627,6 +627,8 @@ struct v4l2_pix_format {
 #define V4L2_PIX_FMT_P012M   v4l2_fourcc('P', 'M', '1', '2') /* 24  Y/CbCr 4:2:0 12-bit per component */
 #define V4L2_PIX_FMT_NV12X	 v4l2_fourcc('N', 'V', 'X', '2') /* Y/CbCr 4:2:0 for 10bit  */
 #define V4L2_PIX_FMT_NV12_10BIT   v4l2_fourcc('N', 'T', '1', '2') /* Y/CbCr 4:2:0 for 10bit  */
+#define V4L2_PIX_FMT_RFC	 v4l2_fourcc('R', 'F', 'C', '0') /* 8bit tile output, with rfc*/
+#define V4L2_PIX_FMT_RFCX	 v4l2_fourcc('R', 'F', 'C', 'X') /* 10 bit tile output, with rfc */
 
 /* three planes - Y Cb, Cr */
 #define V4L2_PIX_FMT_YUV410  v4l2_fourcc('Y', 'U', 'V', '9') /*  9  YUV 4:1:0     */
