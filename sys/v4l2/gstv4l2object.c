@@ -3452,6 +3452,7 @@ gst_v4l2_object_extrapolate_stride (const GstVideoFormatInfo * finfo,
 
   switch (finfo->format) {
     case GST_VIDEO_FORMAT_NV12:
+    case GST_VIDEO_FORMAT_NV12_10LE:
     case GST_VIDEO_FORMAT_NV12_64Z32:
     case GST_VIDEO_FORMAT_NV21:
     case GST_VIDEO_FORMAT_NV16:
