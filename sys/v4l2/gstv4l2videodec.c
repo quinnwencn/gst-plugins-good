@@ -220,7 +220,10 @@ gst_v4l2_video_dec_stop (GstVideoDecoder * decoder)
     gst_video_codec_state_unref (self->input_state);
     self->input_state = NULL;
   }
-
+  if (self->output_state) {
+    gst_video_codec_state_unref (self->output_state);
+    self->output_state = NULL;
+  }
   GST_DEBUG_OBJECT (self, "Stopped");
 
   return TRUE;
@@ -531,6 +534,55 @@ gst_v4l2_video_remove_padding (GstCapsFeatures * features,
   return TRUE;
 }
 
+static gboolean
+get_hdr10_meta(GstV4l2Object * v4l2object, struct v4l2_hdr10_meta * Hdr10Meta)
+{
+	struct v4l2_ext_control ctrl;
+	struct v4l2_ext_controls ctrls;
+	struct v4l2_hdr10_meta hdr10_meta;
+
+	memset(&ctrls, 0, sizeof(ctrls));
+	memset(&ctrl, 0, sizeof(ctrl));
+	memset(&hdr10_meta, 0, sizeof(hdr10_meta));
+
+	ctrls.controls = &ctrl;
+	ctrls.count = 1;
+
+	ctrl.id = V4L2_CID_HDR10META;
+	ctrl.ptr = (void *)&hdr10_meta;
+	ctrl.size = sizeof(hdr10_meta);
+
+	if (ioctl(v4l2object->video_fd, VIDIOC_G_EXT_CTRLS, &ctrls) < 0) {
+		GST_WARNING_OBJECT(v4l2object->dbg_obj, "Failed to get hdr10 meta\n");
+		return FALSE;
+	}
+
+  *Hdr10Meta = hdr10_meta;
+  if (!hdr10_meta.hasHdr10Meta) {
+    GST_INFO_OBJECT (v4l2object->dbg_obj, "Has no HDR meta");
+    return FALSE;
+  }
+
+  GST_INFO_OBJECT(v4l2object->dbg_obj, "redPrimary(%d, %d)",
+		  hdr10_meta.redPrimary[0], hdr10_meta.redPrimary[1]);
+	GST_INFO_OBJECT(v4l2object->dbg_obj, "greenPrimary(%d, %d)",
+		  hdr10_meta.greenPrimary[0], hdr10_meta.greenPrimary[1]);
+  GST_INFO_OBJECT(v4l2object->dbg_obj, "bluePrimary(%d, %d)",
+			hdr10_meta.bluePrimary[0], hdr10_meta.bluePrimary[1]);
+  GST_INFO_OBJECT(v4l2object->dbg_obj, "whitePoint(%d, %d)",
+			hdr10_meta.whitePoint[0], hdr10_meta.whitePoint[1]);
+  GST_INFO_OBJECT(v4l2object->dbg_obj, "maxMasteringLuminance %d",
+      hdr10_meta.maxMasteringLuminance);
+  GST_INFO_OBJECT(v4l2object->dbg_obj, "minMasteringLuminance %d",
+      hdr10_meta.minMasteringLuminance);
+  GST_INFO_OBJECT(v4l2object->dbg_obj, "maxContentLightLevel %d",
+      hdr10_meta.maxContentLightLevel);
+  GST_INFO_OBJECT(v4l2object->dbg_obj, "maxFrameAverageLightLevel %d",
+      hdr10_meta.maxFrameAverageLightLevel);
+
+	return TRUE;
+}
+
 static void
 gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
 {
@@ -546,6 +598,7 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
     GstVideoInfo info;
     GstVideoCodecState *output_state;
     GstCaps *acquired_caps, *available_caps, *caps, *filter;
+    struct v4l2_hdr10_meta Hdr10Meta;
 
     /* Wait until received SOURCE_CHANGE event to get right video format */
     while (self->v4l2capture->can_wait_event
@@ -611,12 +664,12 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
       gst_v4l2_clear_error (&error);
     gst_caps_unref (caps);
 
-    output_state = gst_video_decoder_set_output_state (decoder,
-        info.finfo->format, info.width, info.height, self->input_state);
+    self->output_state = output_state =
+        gst_video_decoder_set_output_state (decoder, info.finfo->format, info.width,
+        info.height, self->input_state);
 
     /* Copy the rest of the information, there might be more in the future */
     output_state->info.interlace_mode = info.interlace_mode;
-    gst_video_codec_state_unref (output_state);
 
     if (!gst_video_decoder_negotiate (decoder)) {
       if (GST_PAD_IS_FLUSHING (decoder->srcpad)) {
@@ -624,6 +677,37 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
         goto flushing;
       } else
         goto not_negotiated;
+    }
+
+    if (get_hdr10_meta(self->v4l2capture, &Hdr10Meta)) {
+      GstVideoMasteringDisplayInfo minfo;
+      GstVideoContentLightLevel cll;
+      minfo.display_primaries[0].x = Hdr10Meta.redPrimary[0];
+      minfo.display_primaries[0].y = Hdr10Meta.redPrimary[1];
+      minfo.display_primaries[1].x = Hdr10Meta.greenPrimary[0];
+      minfo.display_primaries[1].y = Hdr10Meta.greenPrimary[1];
+      minfo.display_primaries[2].x = Hdr10Meta.bluePrimary[0];
+      minfo.display_primaries[2].y = Hdr10Meta.bluePrimary[1];
+      minfo.white_point.x = Hdr10Meta.whitePoint[0];
+      minfo.white_point.y = Hdr10Meta.whitePoint[1];
+      minfo.max_display_mastering_luminance = Hdr10Meta.maxMasteringLuminance;
+      minfo.min_display_mastering_luminance = Hdr10Meta.minMasteringLuminance;
+      cll.max_content_light_level = Hdr10Meta.maxContentLightLevel;
+      cll.max_frame_average_light_level = Hdr10Meta.maxFrameAverageLightLevel;
+      if  (output_state->caps) {
+        output_state->caps = gst_caps_make_writable (output_state->caps);
+        gst_video_mastering_display_info_add_to_caps (&minfo, output_state->caps);
+        gst_video_content_light_level_add_to_caps (&cll, output_state->caps);
+      }
+
+      /* allow renegotiation for hdr10 video */
+      if (!GST_VIDEO_DECODER_CLASS (parent_class)->negotiate (decoder)) {
+        if (GST_PAD_IS_FLUSHING (decoder->srcpad)) {
+          gst_v4l2_object_stop (self->v4l2capture);
+          goto flushing;
+        } else
+          goto not_negotiated;
+      }
     }
 
     /* Ensure our internal pool is activated */

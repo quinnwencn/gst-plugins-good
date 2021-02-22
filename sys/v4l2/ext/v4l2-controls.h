@@ -205,6 +205,9 @@ enum v4l2_colorfx {
 #define V4L2_CID_MPEG_BASE			(V4L2_CTRL_CLASS_MPEG | 0x900)
 #define V4L2_CID_MPEG_CLASS			(V4L2_CTRL_CLASS_MPEG | 1)
 
+/* ctrls & extension ctrls definitions */
+#define V4L2_CID_HDR10META			(V4L2_CID_USER_IMX_BASE + 6)
+
 /*  MPEG streams, specific to multiplexed streams */
 #define V4L2_CID_MPEG_STREAM_TYPE		(V4L2_CID_MPEG_BASE+0)
 enum v4l2_mpeg_stream_type {

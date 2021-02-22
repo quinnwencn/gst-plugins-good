@@ -60,6 +60,8 @@ struct _GstV4l2VideoDec
 
   /* State */
   GstVideoCodecState *input_state;
+  GstVideoCodecState *output_state;
+
   gboolean active;
   GstFlowReturn output_flow;
 };
