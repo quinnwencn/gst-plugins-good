@@ -791,7 +791,26 @@ gst_v4l2_video_dec_handle_frame (GstVideoDecoder * decoder,
     GST_VIDEO_DECODER_STREAM_LOCK (decoder);
 
     gst_buffer_unref (codec_data);
-  
+
+    task_state = gst_pad_get_task_state (GST_VIDEO_DECODER_SRC_PAD (self));
+    if (task_state == GST_TASK_STOPPED || task_state == GST_TASK_PAUSED) {
+      /* It's possible that the processing thread stopped due to an error */
+      if (self->output_flow != GST_FLOW_OK &&
+          self->output_flow != GST_FLOW_FLUSHING) {
+        GST_DEBUG_OBJECT (self, "Processing loop stopped with error, leaving");
+        ret = self->output_flow;
+        goto drop;
+      }
+
+      GST_DEBUG_OBJECT (self, "Starting decoding thread");
+
+      /* Start the processing task, when it quits, the task will disable input
+       * processing to unlock input if draining, or prevent potential block */
+      self->output_flow = GST_FLOW_FLUSHING;
+      if (!gst_pad_start_task (decoder->srcpad,
+              (GstTaskFunction) gst_v4l2_video_dec_loop, self, NULL))
+        goto start_task_failed;
+    }
   }
 
   if (!processed) {
