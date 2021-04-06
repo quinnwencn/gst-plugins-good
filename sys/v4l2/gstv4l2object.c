@@ -4374,6 +4374,9 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object, GstVideoInfo * info)
   if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_G_FMT, &fmt) < 0)
     goto get_fmt_failed;
 
+  if (!IS_IMX8MQ() && fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_NV12X)
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+
   fmtdesc = gst_v4l2_object_get_format_from_fourcc (v4l2object,
       fmt.fmt.pix.pixelformat);
   if (fmtdesc == NULL)
