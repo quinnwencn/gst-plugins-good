@@ -620,6 +620,10 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
     self->v4l2capture->need_wait_event = FALSE;
     self->v4l2capture->is_g2 = self->v4l2output->is_g2;
 
+    /* init capture fps according to output */
+    self->v4l2capture->info.fps_d = self->v4l2output->info.fps_d;
+    self->v4l2capture->info.fps_n = self->v4l2output->info.fps_n;
+
     /* For decoders G_FMT returns coded size, G_SELECTION returns visible size
      * in the compose rectangle. gst_v4l2_object_acquire_format() checks both
      * and returns the visible size as with/height and the coded size as
