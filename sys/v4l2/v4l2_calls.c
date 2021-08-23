@@ -514,7 +514,7 @@ gboolean
 gst_v4l2_subscribe_event (GstV4l2Object * v4l2object)
 {
   GstElement *e;
-  struct v4l2_event_subscription  sub;
+  struct v4l2_event_subscription sub;
 
   e = v4l2object->element;
 
@@ -523,32 +523,31 @@ gst_v4l2_subscribe_event (GstV4l2Object * v4l2object)
   if (!GST_V4L2_IS_OPEN (v4l2object))
     return FALSE;
 
-  memset(&sub, 0, sizeof(struct v4l2_event_subscription));
+  memset (&sub, 0, sizeof (struct v4l2_event_subscription));
   sub.type = V4L2_EVENT_SOURCE_CHANGE;
-  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_SUBSCRIBE_EVENT, &sub) < 0)
-    goto failed;
+  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_SUBSCRIBE_EVENT,
+          &sub) < 0)
+    GST_WARNING_OBJECT (e,
+        "%s cannot subscribe V4L2_EVENT_SOURCE_CHANGE event.",
+        v4l2object->videodev);
 
+  memset (&sub, 0, sizeof (struct v4l2_event_subscription));
   sub.type = V4L2_EVENT_EOS;
-  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_SUBSCRIBE_EVENT, &sub) < 0)
-    goto failed;
+  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_SUBSCRIBE_EVENT,
+          &sub) < 0)
+    GST_WARNING_OBJECT (e, "%s cannot subscribe V4L2_EVENT_EOS event.",
+        v4l2object->videodev);
+
+  memset (&sub, 0, sizeof (struct v4l2_event_subscription));
+  sub.type = V4L2_EVENT_DECODE_ERROR;
+  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_SUBSCRIBE_EVENT,
+          &sub) < 0)
+    GST_WARNING_OBJECT (e, "%s cannot subscribe V4L2_EVENT_DECODE_ERROR event.",
+        v4l2object->videodev);
 
   v4l2object->can_wait_event = TRUE;
 
-  sub.type = V4L2_EVENT_DECODE_ERROR;
-  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_SUBSCRIBE_EVENT, &sub) < 0)
-    GST_DEBUG_OBJECT (e, "Cannot subscribe V4L2_EVENT_ERROR event.");
-
-
   return TRUE;
-
-  /* ERRORS */
-failed:
-  {
-    GST_WARNING_OBJECT (e, "Cannot subscribe V4L2_EVENT_SOURCE_CHANGE or "
-        "V4L2_EVENT_EOS event for device '%s'.",
-        v4l2object->videodev);
-    return TRUE;
-  }
 }
 
 /******************************************************
