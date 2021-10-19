@@ -161,6 +161,8 @@ static const GstV4L2FormatDesc gst_v4l2_formats[] = {
   {V4L2_PIX_FMT_NV12M, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV12MT, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV12MT_16X16, TRUE, GST_V4L2_RAW},
+  {V4L2_PIX_FMT_NV12M_8L128, TRUE, GST_V4L2_RAW},
+  {V4L2_PIX_FMT_NV12M_10BE_8L128, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV21, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV21M, TRUE, GST_V4L2_RAW},
   {V4L2_PIX_FMT_NV16, TRUE, GST_V4L2_RAW},
@@ -1086,6 +1088,8 @@ gst_v4l2_object_format_get_rank (const struct v4l2_fmtdesc *fmt)
     case V4L2_PIX_FMT_NV61M:   /* Same as NV61      */
     case V4L2_PIX_FMT_NV24:    /* 24  Y/CrCb 4:4:4  */
     case V4L2_PIX_FMT_YUV24:   /* 24  YUY 4:4:4     */
+    case V4L2_PIX_FMT_NV12M_8L128:
+    case V4L2_PIX_FMT_NV12M_10BE_8L128:
       rank = YUV_ODD_BASE_RANK;
       break;
 
@@ -1373,6 +1377,12 @@ gst_v4l2_object_v4l2fourcc_to_video_format (guint32 fourcc)
     case V4L2_PIX_FMT_NV12MT:
       format = GST_VIDEO_FORMAT_NV12_64Z32;
       break;
+    case V4L2_PIX_FMT_NV12M_8L128:
+      format = GST_VIDEO_FORMAT_NV12_8L128;
+      break;
+    case V4L2_PIX_FMT_NV12M_10BE_8L128:
+      format = GST_VIDEO_FORMAT_NV12_10BE_8L128;
+      break;
     case V4L2_PIX_FMT_NV21:
     case V4L2_PIX_FMT_NV21M:
       format = GST_VIDEO_FORMAT_NV21;
@@ -1573,6 +1583,8 @@ gst_v4l2_object_v4l2fourcc_to_bare_struct (guint32 fourcc)
     case V4L2_PIX_FMT_RFCX:
     case V4L2_PIX_FMT_NV12M:
     case V4L2_PIX_FMT_NV12MT:
+    case V4L2_PIX_FMT_NV12M_8L128:
+    case V4L2_PIX_FMT_NV12M_10BE_8L128:
     case V4L2_PIX_FMT_NV21:    /* 12  Y/CrCb 4:2:0  */
     case V4L2_PIX_FMT_NV21M:
     case V4L2_PIX_FMT_NV16:    /* 16  Y/CbCr 4:2:2  */
@@ -1862,6 +1874,9 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
         break;
       case GST_VIDEO_FORMAT_NV12_64Z32:
         fourcc_nc = V4L2_PIX_FMT_NV12MT;
+        break;
+      case GST_VIDEO_FORMAT_NV12_10BE_8L128:
+        fourcc_nc = V4L2_PIX_FMT_NV12M_10BE_8L128;
         break;
       case GST_VIDEO_FORMAT_NV21:
         fourcc = V4L2_PIX_FMT_NV21;
