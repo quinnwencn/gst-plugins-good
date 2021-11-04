@@ -730,20 +730,11 @@ gst_v4l2_video_enc_handle_frame (GstVideoEncoder * encoder,
   GstV4l2VideoEnc *self = GST_V4L2_VIDEO_ENC (encoder);
   GstFlowReturn ret = GST_FLOW_OK;
   GstTaskState task_state;
-  GstV4l2IOMode mode;
 
   GST_DEBUG_OBJECT (self, "Handling frame %d", frame->system_frame_number);
 
   if (G_UNLIKELY (!g_atomic_int_get (&self->active)))
     goto flushing;
-
-  mode = self->v4l2output->mode;
-  if (gst_is_dmabuf_memory (gst_buffer_peek_memory (frame->input_buffer, 0))
-      && (frame->system_frame_number == 0)) {
-    self->v4l2output->mode = GST_V4L2_IO_DMABUF_IMPORT;
-    if (!gst_v4l2_object_try_import (self->v4l2output, frame->input_buffer))
-      self->v4l2output->mode = mode;
-  }
 
   task_state = gst_pad_get_task_state (GST_VIDEO_ENCODER_SRC_PAD (self));
   if (task_state == GST_TASK_STOPPED || task_state == GST_TASK_PAUSED) {
