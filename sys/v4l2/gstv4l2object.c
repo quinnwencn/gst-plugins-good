@@ -3626,7 +3626,6 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
   GstStructure *s;
   gboolean disable_interlacing = FALSE;
   gboolean disable_colorimetry = FALSE;
-  GstVideoColorimetry cinfo;
 
   g_return_val_if_fail (!v4l2object->skip_try_fmt_probes ||
       gst_caps_is_writable (caps), FALSE);
@@ -3972,11 +3971,7 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
 
   if (gst_v4l2_object_get_colorspace (v4l2object, &format, &info.colorimetry)) {
     if (gst_structure_has_field (s, "colorimetry")) {
-      if (try_only) {
-        gst_video_colorimetry_from_string (&cinfo, gst_structure_get_string (s, "colorimetry"));
-        if (!gst_video_colorimetry_is_equal (&cinfo, &info.colorimetry))
-          goto invalid_colorimetry;
-      } else if (!gst_v4l2_video_colorimetry_matches (&info.colorimetry, caps))
+      if (!gst_v4l2_video_colorimetry_matches (&info.colorimetry, caps))
         goto invalid_colorimetry;
     }
   } else {
