@@ -190,6 +190,7 @@ gst_v4l2_video_dec_start (GstVideoDecoder * decoder)
 
   gst_v4l2_object_unlock (self->v4l2output);
   g_atomic_int_set (&self->active, TRUE);
+  g_atomic_int_set (&self->locked, FALSE);
   self->output_flow = GST_FLOW_OK;
 
   return TRUE;
@@ -425,10 +426,12 @@ gst_v4l2_video_dec_finish (GstVideoDecoder * decoder)
     /* If the decoder stop command succeeded, just wait until processing is
      * finished */
     GST_DEBUG_OBJECT (self, "Waiting for decoder stop");
+    g_atomic_int_set (&self->locked, TRUE);
     GST_OBJECT_LOCK (task);
     while (GST_TASK_STATE (task) == GST_TASK_STARTED)
       GST_TASK_WAIT (task);
     GST_OBJECT_UNLOCK (task);
+    g_atomic_int_set (&self->locked, FALSE);
     ret = GST_FLOW_FLUSHING;
   } else {
     /* otherwise keep queuing empty buffers until the processing thread has
@@ -1102,7 +1105,8 @@ gst_v4l2_video_dec_change_state (GstElement * element,
     g_atomic_int_set (&self->active, FALSE);
     gst_v4l2_object_unlock (self->v4l2output);
     gst_v4l2_object_unlock (self->v4l2capture);
-    gst_pad_stop_task (decoder->srcpad);
+    if (g_atomic_int_get (&self->locked) == FALSE)
+      gst_pad_stop_task (decoder->srcpad);
   }
 
   return GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
