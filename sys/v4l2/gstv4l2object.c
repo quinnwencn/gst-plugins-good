@@ -5081,7 +5081,9 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
                 obj->drm_modifier = drm_modifier;
                 if (obj->format.fmt.pix.pixelformat == V4L2_PIX_FMT_NV12X)
                   obj->format.fmt.pix.pixelformat = V4L2_PIX_FMT_RFCX;
-                else
+                /* Hdr10 video does renegotiation to transfer hdr10 metadata. Capture pixelformat has been
+                 * changed from NV12X to RFCX at the first time, so just keep the RFCX format here. */
+                else if (obj->format.fmt.pix.pixelformat != V4L2_PIX_FMT_RFCX)
                   obj->format.fmt.pix.pixelformat = V4L2_PIX_FMT_RFC;
             } else {
                 GST_WARNING_OBJECT (obj->dbg_obj, "video sink can't support modifier: %lld",
@@ -5102,7 +5104,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
                 obj->drm_modifier = drm_modifier;
                 if (obj->format.fmt.pix.pixelformat == V4L2_PIX_FMT_NV12X)
                   obj->format.fmt.pix.pixelformat = V4L2_PIX_FMT_RFCX;
-                else
+                else if (obj->format.fmt.pix.pixelformat != V4L2_PIX_FMT_RFCX)
                   obj->format.fmt.pix.pixelformat = V4L2_PIX_FMT_RFC;
             } else {
               GST_WARNING_OBJECT (obj->dbg_obj, "video sink can't support modifier: %lld",
