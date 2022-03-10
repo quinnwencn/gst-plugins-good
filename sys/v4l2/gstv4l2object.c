@@ -2055,17 +2055,17 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
   /* ERRORS */
 invalid_format:
   {
-    GST_DEBUG_OBJECT (v4l2object, "invalid format");
+    GST_DEBUG_OBJECT (v4l2object->dbg_obj, "invalid format");
     return FALSE;
   }
 unhandled_format:
   {
-    GST_DEBUG_OBJECT (v4l2object, "unhandled format");
+    GST_DEBUG_OBJECT (v4l2object->dbg_obj, "unhandled format");
     return FALSE;
   }
 unsupported_format:
   {
-    GST_DEBUG_OBJECT (v4l2object, "unsupported format");
+    GST_DEBUG_OBJECT (v4l2object->dbg_obj, "unsupported format");
     return FALSE;
   }
 }
@@ -2434,7 +2434,8 @@ gst_v4l2_object_add_interlace_mode (GstV4l2Object * v4l2object,
       || gst_value_list_get_size (&interlace_formats) > 0)
     gst_structure_take_value (s, "interlace-mode", &interlace_formats);
   else
-    GST_WARNING_OBJECT (v4l2object, "Failed to determine interlace mode");
+    GST_WARNING_OBJECT (v4l2object->dbg_obj,
+        "Failed to determine interlace mode");
 
   return;
 }
