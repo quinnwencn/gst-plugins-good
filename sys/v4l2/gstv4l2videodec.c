@@ -818,6 +818,7 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
     if (oldest_frame)
       gst_video_codec_frame_unref (oldest_frame);
 
+    frame->duration = self->v4l2capture->duration;
     frame->output_buffer = buffer;
     if (IS_IMX8MQ () && self->v4l2capture->is_hantro) {
       guint64 drm_modifier = self->v4l2capture->drm_modifier;
