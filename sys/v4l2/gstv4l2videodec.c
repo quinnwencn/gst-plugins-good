@@ -810,7 +810,7 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
       oldest_frame = NULL;
 
       if (!warned) {
-        g_warning ("%s: Too old frames, bug in decoder -- please file a bug",
+        GST_WARNING ("%s: Too old frames, bug in decoder -- please file a bug",
             GST_ELEMENT_NAME (decoder));
         warned = TRUE;
       }
