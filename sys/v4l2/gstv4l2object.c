@@ -1875,6 +1875,9 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
       case GST_VIDEO_FORMAT_NV12_64Z32:
         fourcc_nc = V4L2_PIX_FMT_NV12MT;
         break;
+      case GST_VIDEO_FORMAT_NV12_8L128:
+        fourcc_nc = V4L2_PIX_FMT_NV12M_8L128;
+        break;
       case GST_VIDEO_FORMAT_NV12_10BE_8L128:
         fourcc_nc = V4L2_PIX_FMT_NV12M_10BE_8L128;
         break;
