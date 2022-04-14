@@ -663,6 +663,7 @@ gst_v4l2_video_dec_setup_capture (GstVideoDecoder * decoder)
 
     /* Copy the rest of the information, there might be more in the future */
     output_state->info.interlace_mode = info.interlace_mode;
+    output_state->info.colorimetry = info.colorimetry;
     gst_v4l2_buffer_pool_enable_resolution_change (GST_V4L2_BUFFER_POOL
         (self->v4l2capture->pool));
 
