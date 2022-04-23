@@ -713,7 +713,11 @@ gst_v4l2_video_dec_setup_capture (GstVideoDecoder * decoder)
         goto not_negotiated;
     }
 
-    if (get_hdr10_meta (self->v4l2capture, &Hdr10Meta)) {
+    get_hdr10_meta (self->v4l2capture, &Hdr10Meta);
+    if ((self->v4l2capture->format.fmt.pix.xfer_func == V4L2_XFER_FUNC_SMPTE2084
+            || self->v4l2capture->format.fmt.pix.xfer_func ==
+            V4L2_XFER_FUNC_HLG)
+        && info.finfo->format == GST_VIDEO_FORMAT_NV12_10LE40) {
       GstVideoMasteringDisplayInfo minfo;
       GstVideoContentLightLevel cll;
       minfo.display_primaries[0].x = Hdr10Meta.redPrimary[0];
