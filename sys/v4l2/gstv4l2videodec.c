@@ -691,6 +691,8 @@ gst_v4l2_video_dec_setup_capture (GstVideoDecoder * decoder)
       gst_v4l2_clear_error (&error);
     gst_caps_unref (caps);
 
+    if (self->output_state)
+      gst_video_codec_state_unref (self->output_state);
     self->output_state = output_state =
         gst_video_decoder_set_output_state (decoder, info.finfo->format,
         info.width, info.height, self->input_state);
