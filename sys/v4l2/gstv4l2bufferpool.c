@@ -722,8 +722,6 @@ gst_v4l2_buffer_pool_streamoff (GstV4l2BufferPool * pool)
   if (!pool->streaming)
     return;
 
-  GST_OBJECT_LOCK (pool);
-
   switch (obj->mode) {
     case GST_V4L2_IO_MMAP:
     case GST_V4L2_IO_USERPTR:
@@ -765,8 +763,6 @@ gst_v4l2_buffer_pool_streamoff (GstV4l2BufferPool * pool)
       g_atomic_int_add (&pool->num_queued, -1);
     }
   }
-
-  GST_OBJECT_UNLOCK (pool);
 }
 
 static gboolean
@@ -1012,8 +1008,11 @@ gst_v4l2_buffer_pool_stop (GstBufferPool * bpool)
     pool->other_pool = NULL;
   }
 
-  if (!pool->orphaned)
+  if (!pool->orphaned) {
+    GST_OBJECT_LOCK (pool);
     gst_v4l2_buffer_pool_streamoff (pool);
+    GST_OBJECT_UNLOCK (pool);
+  }
 
   ret = GST_BUFFER_POOL_CLASS (parent_class)->stop (bpool);
 
@@ -1040,12 +1039,11 @@ gst_v4l2_buffer_pool_orphan (GstBufferPool ** bpool)
   GST_DEBUG_OBJECT (pool, "orphaning pool");
   gst_buffer_pool_set_active (*bpool, FALSE);
 
-  gst_v4l2_buffer_pool_streamoff (pool);
-
   /* We lock to prevent racing with a return buffer in QBuf, and has a
    * workaround of not being able to use the pool hidden activation lock. */
   GST_OBJECT_LOCK (pool);
 
+  gst_v4l2_buffer_pool_streamoff (pool);
   ret = gst_v4l2_allocator_orphan (pool->vallocator);
   if (ret)
     pool->orphaned = TRUE;
@@ -2291,7 +2289,9 @@ gst_v4l2_buffer_pool_flush (GstBufferPool * bpool)
   GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
   gboolean ret = TRUE;
 
+  GST_OBJECT_LOCK (pool);
   gst_v4l2_buffer_pool_streamoff (pool);
+  GST_OBJECT_UNLOCK (pool);
 
   if (!V4L2_TYPE_IS_OUTPUT (pool->obj->type))
     ret = gst_v4l2_buffer_pool_streamon (pool);
