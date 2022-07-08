@@ -123,6 +123,28 @@ done:
   return valid;
 }
 
+static void
+gst_v4l2_buffer_pool_resize_buffer (GstBufferPool * bpool, GstBuffer * buffer)
+{
+  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstV4l2MemoryGroup *group;
+  guint n_mem, i;
+  gsize offset, maxsize;
+
+  if (gst_v4l2_is_buffer_valid (buffer, &group)) {
+    n_mem = gst_buffer_n_memory (buffer);
+
+    for (i = 0; i < n_mem; i++) {
+      gst_buffer_get_sizes_range(buffer, i, 1, &offset, &maxsize);
+      gst_buffer_resize_range(buffer, i, 1, offset, maxsize);
+      GST_LOG_OBJECT (pool, "resize memory: idx: %d, offset: %d, size = %d",
+        i, offset, maxsize);
+    }
+  } else {
+    GST_BUFFER_FLAG_SET (buffer, GST_BUFFER_FLAG_TAG_MEMORY);
+  }
+}
+
 static GstFlowReturn
 gst_v4l2_buffer_pool_copy_buffer (GstV4l2BufferPool * pool, GstBuffer * dest,
     GstBuffer * src)
@@ -1989,8 +2011,10 @@ gst_v4l2_buffer_pool_process (GstV4l2BufferPool * pool, GstBuffer ** buf,
             gsize size = gst_buffer_get_size (*buf);
 
             /* Legacy M2M devices return empty buffer when drained */
-            if (size == 0 && GST_V4L2_IS_M2M (obj->device_caps))
+            if (size == 0 && GST_V4L2_IS_M2M (obj->device_caps)) {
+              gst_v4l2_buffer_pool_resize_buffer(bpool, *buf);
               goto eos;
+            }
 
             num_queued = g_atomic_int_get (&pool->num_queued);
             GST_TRACE_OBJECT (pool, "Only %i buffer left in the capture queue.",
@@ -2040,8 +2064,10 @@ gst_v4l2_buffer_pool_process (GstV4l2BufferPool * pool, GstBuffer ** buf,
             gst_v4l2_buffer_pool_complete_release_buffer (bpool, tmp, FALSE);
 
             /* Legacy M2M devices return empty buffer when drained */
-            if (GST_V4L2_IS_M2M (obj->device_caps))
+            if (GST_V4L2_IS_M2M (obj->device_caps)) {
+              gst_v4l2_buffer_pool_resize_buffer(bpool, *buf);
               goto eos;
+            }
           }
 
           ret = gst_v4l2_buffer_pool_copy_buffer (pool, *buf, tmp);
