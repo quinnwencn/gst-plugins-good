@@ -26,6 +26,7 @@
 #include <gst/video/video.h>
 #include <gst/video/gstvideoencoder.h>
 #include <gst/video/gstvideometa.h>
+#include <gst/allocators/gstdmabuf.h>
 
 #include <gstv4l2object.h>
 #include <gstv4l2bufferpool.h>
