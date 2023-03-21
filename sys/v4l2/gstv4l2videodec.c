@@ -1238,6 +1238,22 @@ gst_v4l2_video_dec_sink_event (GstVideoDecoder * decoder, GstEvent * event)
   return ret;
 }
 
+static gboolean
+gst_v4l2_video_dec_handle_missing_data (GstVideoDecoder *
+    decoder, GstClockTime timestamp, GstClockTime duration)
+{
+  GstTaskState task_state = gst_pad_get_task_state (decoder->srcpad);
+
+  /* No need to check the return value as base class always returns TRUE */
+  GST_VIDEO_DECODER_CLASS (parent_class)->handle_missing_data (decoder,
+      timestamp, duration);
+
+  if (task_state == GST_TASK_STARTED)
+    return TRUE;
+  else
+    return FALSE;
+}
+
 static GstStateChangeReturn
 gst_v4l2_video_dec_change_state (GstElement * element,
     GstStateChange transition)
@@ -1350,6 +1366,8 @@ gst_v4l2_video_dec_class_init (GstV4l2VideoDecClass * klass)
       GST_DEBUG_FUNCPTR (gst_v4l2_video_dec_src_query);
   video_decoder_class->sink_event =
       GST_DEBUG_FUNCPTR (gst_v4l2_video_dec_sink_event);
+  video_decoder_class->handle_missing_data =
+      GST_DEBUG_FUNCPTR (gst_v4l2_video_dec_handle_missing_data);
 
   element_class->change_state =
       GST_DEBUG_FUNCPTR (gst_v4l2_video_dec_change_state);
