@@ -759,7 +759,7 @@ gst_v4l2_video_enc_handle_frame (GstVideoEncoder * encoder,
     GstV4l2IOMode mode = self->v4l2output->mode;
 
     if (gst_is_dmabuf_memory (gst_buffer_peek_memory (frame->input_buffer, 0))
-        && (frame->system_frame_number == 0)) {
+        && (gst_pad_get_task_state (encoder->srcpad) != GST_TASK_STARTED)) {
       self->v4l2output->mode = GST_V4L2_IO_DMABUF_IMPORT;
       if (!gst_v4l2_object_try_import (self->v4l2output, frame->input_buffer))
         self->v4l2output->mode = mode;
