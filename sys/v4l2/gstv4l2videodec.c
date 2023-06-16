@@ -1170,6 +1170,15 @@ gst_v4l2_video_dec_decide_allocation (GstVideoDecoder * decoder,
   GstClockTime latency;
   gboolean ret = FALSE;
 
+  /* For some streams, maybe there is no valid video buffer
+   * at the start which can be sent to decoder and demuxer
+   * will send gap event instead if those streams have audio
+   * track. It will cause error if decide allocation becasue
+   * the default size of one frame is 0. */
+  if (!self->v4l2capture->info.size) {
+    return FALSE;
+  }
+
   if (gst_v4l2_object_decide_allocation (self->v4l2capture, query))
     ret = GST_VIDEO_DECODER_CLASS (parent_class)->decide_allocation (decoder,
         query);
