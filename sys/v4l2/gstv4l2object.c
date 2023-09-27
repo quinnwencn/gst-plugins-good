@@ -573,6 +573,8 @@ gst_v4l2_object_new (GstElement * element,
 
   v4l2object->poll = gst_poll_new (TRUE);
   v4l2object->can_poll_device = TRUE;
+  v4l2object->crop_width = 0;
+  v4l2object->crop_height = 0;
 
   /* We now disable libv4l2 by default, but have an env to enable it. */
 #ifdef HAVE_LIBV4L2
@@ -3643,7 +3645,7 @@ gst_v4l2_object_reset_compose_region (GstV4l2Object * obj)
   GST_V4L2_CHECK_OPEN (obj);
 
   sel.type = obj->type;
-  sel.target = V4L2_SEL_TGT_COMPOSE_DEFAULT;
+  sel.target = V4L2_SEL_TGT_COMPOSE;
 
   if (obj->ioctl (obj->video_fd, VIDIOC_G_SELECTION, &sel) < 0) {
     if (errno == ENOTTY) {
@@ -4829,7 +4831,7 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object, GstVideoInfo * info)
   /* Use the default compose rectangle */
   memset (&sel, 0, sizeof (struct v4l2_selection));
   sel.type = v4l2object->type;
-  sel.target = V4L2_SEL_TGT_COMPOSE_DEFAULT;
+  sel.target = V4L2_SEL_TGT_COMPOSE;
   if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_G_SELECTION, &sel) >= 0) {
     r = &sel.r;
   } else {
@@ -4842,10 +4844,15 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object, GstVideoInfo * info)
   if (r) {
     align.padding_left = r->left;
     align.padding_top = r->top;
-    align.padding_right = width - r->width - r->left;
-    align.padding_bottom = height - r->height - r->top;
-    width = r->width;
-    height = r->height;
+    align.padding_right =
+        (gint) width - (gint) r->width - r->left - v4l2object->crop_width;
+    align.padding_bottom =
+        (gint) height - (gint) r->height - r->top - v4l2object->crop_height;
+    width = (gint) r->width + v4l2object->crop_width;
+    height = (gint) r->height + v4l2object->crop_height;
+    GST_INFO_OBJECT (v4l2object->dbg_obj,
+        "caps size: %ux%u, padding size: %ux%u", width, height,
+        align.padding_right, align.padding_bottom);
   }
 
   switch (fmt.fmt.pix.field) {
@@ -5713,7 +5720,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
 
   /* aovid copy Amphion tiled frame buffer for un-active video track */
   /* also to avoid copy Hantro frame buffer when link v4l2 decoder with fakesink */
-  if (obj->is_amphion || obj->is_hantro) {
+  if (obj->is_amphion || obj->is_hantro || IS_IMX95 ()) {
     can_share_own_pool = TRUE;
     if (min < GST_V4L2_MIN_BUFFERS (obj))
       min = GST_V4L2_MIN_BUFFERS (obj);

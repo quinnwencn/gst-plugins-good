@@ -835,6 +835,68 @@ gst_v4l2_video_dec_wait_for_src_ch (GstV4l2VideoDec * self)
 }
 
 static void
+gst_v4l2_video_dec_set_selection (GstVideoDecoder * decoder)
+{
+  GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
+  GstV4l2Object *v4l2object = self->v4l2capture;
+  struct v4l2_selection sel = { 0 };
+  GstCaps *filter, *caps;
+  GstStructure *structure;
+  const GValue *value;
+  gint width = 0, height = 0;
+  gint src_width, src_height;
+
+  src_width = self->v4l2output->info.width;
+  src_height = self->v4l2output->info.height;
+
+  // get the downscale width/height from caps if have
+  filter = gst_caps_new_empty_simple ("video/x-raw");
+  caps = gst_pad_peer_query_caps (decoder->srcpad, filter);
+  structure = gst_caps_get_structure (caps, 0);
+  GST_INFO_OBJECT (v4l2object->dbg_obj, "queried caps: %" GST_PTR_FORMAT, caps);
+
+  value = gst_structure_get_value (structure, "width");
+  if (value && G_VALUE_TYPE (value) == G_TYPE_INT)
+    width = g_value_get_int (value);
+
+  value = gst_structure_get_value (structure, "height");
+  if (value && G_VALUE_TYPE (value) == G_TYPE_INT)
+    height = g_value_get_int (value);
+
+  if (width >= src_width / 8 && width <= src_width &&
+      height >= src_height / 8 && height <= src_height) {
+    GST_INFO_OBJECT (v4l2object->dbg_obj, "want to s_selection %dx%d", width,
+        height);
+
+    // set selection with downscale size
+    sel.type = v4l2object->type;
+    sel.target = V4L2_SEL_TGT_COMPOSE;
+    sel.flags = V4L2_SEL_FLAG_GE;
+    sel.r.left = 0;
+    sel.r.top = 0;
+    sel.r.width = width;
+    sel.r.height = height;
+
+    if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_S_SELECTION, &sel) < 0) {
+      GST_WARNING_OBJECT (v4l2object->dbg_obj,
+          "Failed to set downscale size with VIDIOC_S_SELECTION: %s",
+          g_strerror (errno));
+      goto out;
+    }
+    v4l2object->crop_width = width - (gint) sel.r.width;
+    v4l2object->crop_height = height - (gint) sel.r.height;
+
+    GST_INFO_OBJECT (v4l2object->dbg_obj, "got downscale size %dx%d",
+        sel.r.width, sel.r.height);
+  }
+
+out:
+  gst_caps_unref (filter);
+  gst_caps_unref (caps);
+  return;
+}
+
+static void
 gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
 {
   GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
@@ -853,6 +915,8 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
       GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
       goto beach;
     }
+
+    gst_v4l2_video_dec_set_selection (decoder);
 
     GST_DEBUG_OBJECT (decoder, "Setup the capture queue");
     if (G_UNLIKELY (!GST_V4L2_IS_ACTIVE (self->v4l2capture))) {
