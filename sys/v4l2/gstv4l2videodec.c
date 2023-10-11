@@ -907,6 +907,15 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
       ret = gst_v4l2_buffer_pool_process (cpool, &buffer, NULL);
       if (cpool)
         gst_object_unref (cpool);
+
+      while (self->v4l2capture->drop_frames) {
+        guint32 *tmp = self->v4l2capture->drop_frames->data;
+        GstVideoCodecFrame *frame = gst_video_decoder_get_frame (decoder, *tmp);
+        if (frame)
+          gst_video_decoder_drop_frame (decoder, frame);
+        self->v4l2capture->drop_frames =
+            g_list_remove (self->v4l2capture->drop_frames, tmp);
+      }
     }
   } while (ret == GST_V4L2_FLOW_CORRUPTED_BUFFER);
 
@@ -1103,6 +1112,14 @@ gst_v4l2_video_dec_handle_frame (GstVideoDecoder * decoder,
     ret =
         gst_v4l2_buffer_pool_process (GST_V4L2_BUFFER_POOL (pool), &codec_data,
         processed ? &frame->system_frame_number : &dummy_frame_number);
+    while (self->v4l2output->drop_frames) {
+      guint32 *tmp = self->v4l2output->drop_frames->data;
+      GstVideoCodecFrame *frame = gst_video_decoder_get_frame (decoder, *tmp);
+      if (frame)
+        gst_video_decoder_drop_frame (decoder, frame);
+      self->v4l2output->drop_frames =
+          g_list_remove (self->v4l2output->drop_frames, tmp);
+    }
     GST_VIDEO_DECODER_STREAM_LOCK (decoder);
 
     gst_buffer_unref (codec_data);
@@ -1143,6 +1160,14 @@ gst_v4l2_video_dec_handle_frame (GstVideoDecoder * decoder,
     ret =
         gst_v4l2_buffer_pool_process (GST_V4L2_BUFFER_POOL (pool),
         &frame->input_buffer, &frame->system_frame_number);
+    while (self->v4l2output->drop_frames) {
+      guint32 *tmp = self->v4l2output->drop_frames->data;
+      GstVideoCodecFrame *frame = gst_video_decoder_get_frame (decoder, *tmp);
+      if (frame)
+        gst_video_decoder_drop_frame (decoder, frame);
+      self->v4l2output->drop_frames =
+          g_list_remove (self->v4l2output->drop_frames, tmp);
+    }
     GST_VIDEO_DECODER_STREAM_LOCK (decoder);
 
     if (self->v4l2output->err_cnt > MAX_OUTPUT_ERROR_COUNT) {
