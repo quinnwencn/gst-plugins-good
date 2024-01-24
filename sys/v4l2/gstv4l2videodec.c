@@ -1042,6 +1042,17 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
 
     frame->duration = self->v4l2capture->duration;
     frame->output_buffer = buffer;
+
+    /* set crop info for none-tiled format */
+    if (!GST_VIDEO_FORMAT_INFO_IS_TILED (self->v4l2capture->info.finfo)) {
+      GstVideoCropMeta *cmeta =
+          gst_buffer_add_video_crop_meta (frame->output_buffer);
+      cmeta->x = self->v4l2capture->align.padding_left;
+      cmeta->y = self->v4l2capture->align.padding_top;
+      cmeta->width = self->v4l2capture->info.width;
+      cmeta->height = self->v4l2capture->info.height;
+    }
+
     if (IS_IMX8MQ () && self->v4l2capture->is_hantro) {
       guint64 drm_modifier = self->v4l2capture->drm_modifier;
       gst_buffer_add_dmabuf_meta (frame->output_buffer, drm_modifier);

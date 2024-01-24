@@ -3637,40 +3637,6 @@ no_supported_capture_method:
   }
 }
 
-static gboolean
-gst_v4l2_object_reset_compose_region (GstV4l2Object * obj)
-{
-  struct v4l2_selection sel = { 0 };
-
-  GST_V4L2_CHECK_OPEN (obj);
-
-  sel.type = obj->type;
-  sel.target = V4L2_SEL_TGT_COMPOSE;
-
-  if (obj->ioctl (obj->video_fd, VIDIOC_G_SELECTION, &sel) < 0) {
-    if (errno == ENOTTY) {
-      /* No-op when selection API is not supported */
-      return TRUE;
-    } else {
-      GST_WARNING_OBJECT (obj->dbg_obj,
-          "Failed to get default compose rectangle with VIDIOC_G_SELECTION: %s",
-          g_strerror (errno));
-      return FALSE;
-    }
-  }
-
-  sel.target = V4L2_SEL_TGT_COMPOSE;
-
-  if (obj->ioctl (obj->video_fd, VIDIOC_S_SELECTION, &sel) < 0) {
-    GST_WARNING_OBJECT (obj->dbg_obj,
-        "Failed to set default compose rectangle with VIDIOC_S_SELECTION: %s",
-        g_strerror (errno));
-    return FALSE;
-  }
-
-  return TRUE;
-}
-
 static void
 gst_v4l2_object_set_stride (GstVideoInfo * info, GstVideoAlignment * align,
     gint plane, gint stride)
@@ -4428,15 +4394,18 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
    * in ASF mode for example, there is also not reason for a driver to
    * change the size. */
   if (info.finfo->format != GST_VIDEO_FORMAT_ENCODED) {
+    struct v4l2_rect def_crop = { 0 };
     /* We can crop larger images */
     if (format.fmt.pix.width < width || format.fmt.pix.height < height)
       goto invalid_dimensions;
 
+    gst_v4l2_object_get_crop_default (v4l2object, &def_crop);
+
     /* Note, this will be adjusted if upstream has non-centered cropping. */
-    align.padding_top = 0;
-    align.padding_bottom = format.fmt.pix.height - height;
-    align.padding_left = 0;
-    align.padding_right = format.fmt.pix.width - width;
+    align.padding_top = def_crop.top;
+    align.padding_bottom = format.fmt.pix.height - height - def_crop.top;
+    align.padding_left = def_crop.left;
+    align.padding_right = format.fmt.pix.width - width - def_crop.left;
   }
 
   if (is_mplane && format.fmt.pix_mp.num_planes != n_v4l_planes)
@@ -4611,9 +4580,6 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
 done:
   /* add boolean return, so we can fail on drivers bugs */
   gst_v4l2_object_save_format (v4l2object, fmtdesc, &format, &info, &align);
-
-  /* reset composition region to match the S_FMT size */
-  gst_v4l2_object_reset_compose_region (v4l2object);
 
   /* now configure the pool */
   if (!gst_v4l2_object_setup_pool (v4l2object, caps))
