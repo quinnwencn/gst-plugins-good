@@ -57,6 +57,7 @@ GST_DEBUG_CATEGORY_EXTERN (v4l2_debug);
 #define DEFAULT_PROP_IO_MODE            GST_V4L2_IO_AUTO
 
 #define ENCODED_BUFFER_MIN_SIZE         (256 * 1024)
+#define ENCODED_BUFFER_MAX_SIZE         (4 * 1024 * 1024)
 #define GST_V4L2_DEFAULT_WIDTH          320
 #define GST_V4L2_DEFAULT_HEIGHT         240
 
@@ -3945,7 +3946,7 @@ calculate_max_sizeimage (GstV4l2Object * v4l2object, guint pixel_bitdepth)
   max_height = v4l2object->max_height;
   sizeimage = max_width * max_height * pixel_bitdepth / 8 / 2;
 
-  return MAX (ENCODED_BUFFER_MIN_SIZE, sizeimage);
+  return CLAMP (sizeimage, ENCODED_BUFFER_MIN_SIZE, ENCODED_BUFFER_MAX_SIZE);
 }
 
 static gboolean
