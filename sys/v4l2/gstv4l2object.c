@@ -3738,6 +3738,7 @@ gst_v4l2_object_save_format (GstV4l2Object * v4l2object,
     guint tile_height;
     tile_height = GST_VIDEO_FORMAT_INFO_TILE_HEIGHT (finfo, 0);
     padded_height = (padded_height + tile_height - 1) / tile_height;
+    padded_height *= tile_height;
   }
 
   align->padding_bottom =
