@@ -3950,7 +3950,7 @@ calculate_max_sizeimage (GstV4l2Object * v4l2object, guint pixel_bitdepth)
 
   max_width = v4l2object->max_width;
   max_height = v4l2object->max_height;
-  sizeimage = max_width * max_height * pixel_bitdepth / 8 / 2;
+  sizeimage = max_width * max_height * (pixel_bitdepth / 8) * (3 / 2);
 
   return CLAMP (sizeimage, ENCODED_BUFFER_MIN_SIZE, ENCODED_BUFFER_MAX_SIZE);
 }
