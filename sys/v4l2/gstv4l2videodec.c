@@ -688,9 +688,6 @@ gst_v4l2_video_dec_finish (GstVideoDecoder * decoder)
 
   GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
 
-  /* If we are in the middle of a source change, cancel it */
-  self->draining = FALSE;
-
   if (gst_v4l2_decoder_cmd (self->v4l2output, V4L2_DEC_CMD_STOP, 0)) {
     GstTask *task;
 
@@ -737,6 +734,7 @@ gst_v4l2_video_dec_finish (GstVideoDecoder * decoder)
    * occurred. */
   gst_v4l2_object_unlock (self->v4l2capture);
   gst_pad_stop_task (decoder->srcpad);
+  self->draining = FALSE;
   GST_VIDEO_DECODER_STREAM_LOCK (decoder);
 
   if (ret == GST_FLOW_FLUSHING)
